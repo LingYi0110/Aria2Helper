@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os/exec"
 	"syscall"
+	"time"
 
 	"github.com/getlantern/systray"
 	"github.com/spf13/viper"
@@ -39,12 +40,14 @@ func updateBtTracker(urls []string, configPath string) {
 
 	// 获取Bt-tracker的内容
 	for _, vaule := range urls {
-		resp, err := http.Get(vaule)
+		client := http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Get(vaule)
 		if err != nil {
 			fmt.Printf("Error: 从%s获取Bt-tracker失败", vaule)
 			return
 		}
 		defer resp.Body.Close()
+		defer client.CloseIdleConnections()
 		body, _ := io.ReadAll(resp.Body)
 		address += string(body) + ","
 	}
