@@ -1,0 +1,14 @@
+# 可以自定义启动aria2时的命令
+command: 
+  name: "./aria2c"
+  args:
+    - "--conf-path=aria2.conf"
+
+# 开机是否自动启动
+allowAutoStart: true
+
+# 启动时自动更新bt-tracker
+autoUpdateBt-tracker:
+  enabled: true
+  address: 
+    - "https://cdn.staticaly.com/gh/XIU2/TrackersListCollection/master/all_aria2.txt"
