@@ -2,39 +2,71 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
+	"net/http"
 	"os/exec"
 	"syscall"
 
 	"github.com/getlantern/systray"
-	"gopkg.in/yaml.v3"
+	"github.com/spf13/viper"
 )
 
 var cmd *exec.Cmd
 
-type config struct {
-	command struct {
-	}
-}
-
 func main() {
 	fmt.Println("Aria2Helper  By: LingYi0110")
-	file, _ := ioutil.ReadFile("config.yaml")
-	var data [7]Users
-	yaml.Unmarshal(file, &data)
-	start()
+
+	// 读取配置
+	viper.SetConfigFile("./config.yml")
+	viper.ReadInConfig()
+	command := viper.Sub("command")
+	name := command.GetString("name")
+	args := command.GetStringSlice("args")
+	enableUpdate := viper.Sub("autoUpdateBt-tracker").GetBool("enabled")
+	urls := viper.Sub("autoUpdateBt-tracker").GetStringSlice("urls")
+	path := viper.Sub("autoUpdateBt-tracker").GetString("aria2ConfigPath")
+
+	// 更新配置
+	if enableUpdate {
+		updateBtTracker(urls, path)
+	}
+	start(name, args)
 	systray.Run(onReady, onExit)
 
 }
+func updateBtTracker(urls []string, configPath string) {
+	var address string
 
-func start() {
+	// 获取Bt-tracker的内容
+	for _, vaule := range urls {
+		resp, err := http.Get(vaule)
+		if err != nil {
+			fmt.Printf("Error: 从%s获取Bt-tracker失败", vaule)
+			return
+		}
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		address += string(body) + ","
+	}
+
+	// 写入aria2的config文件
+	viper.SetConfigFile(configPath)
+	viper.SetConfigType("properties") // 不知道为什么，aria2的config文件格式和java properties一致
+	viper.ReadInConfig()
+	viper.Set("bt-tracker", address)
+	viper.WriteConfig()
+
+}
+func start(name string, args []string) {
 	go func() {
-		cmd = exec.Command("./aria2c", "--conf-path=aria2.conf")
+
+		cmd = exec.Command(name)
+		cmd.Args = args
 		out, err := cmd.CombinedOutput()
 		// err := cmd.Run()
 		if err != nil {
 			fmt.Printf("Aria2进程已结束: %s\n", err)
-			start()
+			start(name, args)
 		}
 		fmt.Print(out)
 	}()
@@ -91,5 +123,4 @@ func onReady() {
 }
 
 func onExit() {
-	// clean up here
 }

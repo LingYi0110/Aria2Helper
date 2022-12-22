@@ -10,5 +10,6 @@ allowAutoStart: true
 # 启动时自动更新bt-tracker
 autoUpdateBt-tracker:
   enabled: true
-  address: 
+  aria2ConfigPath: "aria2.conf"
+  urls: 
     - "https://cdn.staticaly.com/gh/XIU2/TrackersListCollection/master/all_aria2.txt"
